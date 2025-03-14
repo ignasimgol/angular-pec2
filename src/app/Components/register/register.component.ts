@@ -12,6 +12,8 @@ import { UserDTO } from 'src/app/Models/user.dto';
 import { HeaderMenusService } from 'src/app/Services/header-menus.service';
 import { SharedService } from 'src/app/Services/shared.service';
 import { UserService } from 'src/app/Services/user.service';
+import { catchError, tap } from 'rxjs/operators';
+import { of } from 'rxjs';
 
 @Component({
   selector: 'app-register',
@@ -94,46 +96,34 @@ export class RegisterComponent implements OnInit {
 
   ngOnInit(): void {}
 
-  async register(): Promise<void> {
-    let responseOK: boolean = false;
+  register(): void {
     this.isValidForm = false;
-    let errorResponse: any;
-
+  
     if (this.registerForm.invalid) {
       return;
     }
-
+  
     this.isValidForm = true;
     this.registerUser = this.registerForm.value;
-
-    try {
-      await this.userService.register(this.registerUser);
-      responseOK = true;
-    } catch (error: any) {
-      responseOK = false;
-      errorResponse = error.error;
-
-      const headerInfo: HeaderMenus = {
-        showAuthSection: false,
-        showNoAuthSection: true,
-      };
-      this.headerMenusService.headerManagement.next(headerInfo);
-
-      this.sharedService.errorLog(errorResponse);
-    }
-
-    await this.sharedService.managementToast(
-      'registerFeedback',
-      responseOK,
-      errorResponse
-    );
-
-    if (responseOK) {
-      // Reset the form
-      this.registerForm.reset();
-      // After reset form we set birthDate to today again (is an example)
-      this.birth_date.setValue(formatDate(new Date(), 'yyyy-MM-dd', 'en'));
-      this.router.navigateByUrl('home');
-    }
+  
+    this.userService.register(this.registerUser).pipe(
+      tap(() => {
+        this.sharedService.managementToast('registerFeedback', true);
+        this.registerForm.reset();
+        this.birth_date.setValue(formatDate(new Date(), 'yyyy-MM-dd', 'en'));
+        this.router.navigateByUrl('home');
+      }),
+      catchError((error) => {
+        const headerInfo: HeaderMenus = {
+          showAuthSection: false,
+          showNoAuthSection: true,
+        };
+        this.headerMenusService.headerManagement.next(headerInfo);
+        
+        this.sharedService.errorLog(error.error);
+        this.sharedService.managementToast('registerFeedback', false, error.error);
+        return of(null);
+      })
+    ).subscribe();
   }
 }

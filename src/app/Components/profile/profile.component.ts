@@ -10,6 +10,8 @@ import { UserDTO } from 'src/app/Models/user.dto';
 import { LocalStorageService } from 'src/app/Services/local-storage.service';
 import { SharedService } from 'src/app/Services/shared.service';
 import { UserService } from 'src/app/Services/user.service';
+import { catchError, tap } from 'rxjs/operators';
+import { of } from 'rxjs';
 
 @Component({
   selector: 'app-profile',
@@ -89,70 +91,61 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  async ngOnInit(): Promise<void> {
-    let errorResponse: any;
-
-    // load user data
+  ngOnInit(): void {
     const userId = this.localStorageService.get('user_id');
     if (userId) {
-      try {
-        const userData = await this.userService.getUSerById(userId);
+      this.userService.getUserById(userId).pipe(
+        tap((userData) => {
+          this.name.setValue(userData.name);
+          this.surname_1.setValue(userData.surname_1);
+          this.surname_2.setValue(userData.surname_2);
+          this.alias.setValue(userData.alias);
+          this.birth_date.setValue(
+            formatDate(userData.birth_date, 'yyyy-MM-dd', 'en')
+          );
+          this.email.setValue(userData.email);
 
-        this.name.setValue(userData.name);
-        this.surname_1.setValue(userData.surname_1);
-        this.surname_2.setValue(userData.surname_2);
-        this.alias.setValue(userData.alias);
-        this.birth_date.setValue(
-          formatDate(userData.birth_date, 'yyyy-MM-dd', 'en')
-        );
-        this.email.setValue(userData.email);
-
-        this.profileForm = this.formBuilder.group({
-          name: this.name,
-          surname_1: this.surname_1,
-          surname_2: this.surname_2,
-          alias: this.alias,
-          birth_date: this.birth_date,
-          email: this.email,
-          password: this.password,
-        });
-      } catch (error: any) {
-        errorResponse = error.error;
-        this.sharedService.errorLog(errorResponse);
-      }
+          this.profileForm = this.formBuilder.group({
+            name: this.name,
+            surname_1: this.surname_1,
+            surname_2: this.surname_2,
+            alias: this.alias,
+            birth_date: this.birth_date,
+            email: this.email,
+            password: this.password,
+          });
+        }),
+        catchError((error) => {
+          this.sharedService.errorLog(error.error);
+          return of(null);
+        })
+      ).subscribe();
     }
   }
 
-  async updateUser(): Promise<void> {
-    let responseOK: boolean = false;
+  updateUser(): void {
     this.isValidForm = false;
-    let errorResponse: any;
-
+  
     if (this.profileForm.invalid) {
       return;
     }
-
+  
     this.isValidForm = true;
     this.profileUser = this.profileForm.value;
-
+  
     const userId = this.localStorageService.get('user_id');
-
+  
     if (userId) {
-      try {
-        await this.userService.updateUser(userId, this.profileUser);
-        responseOK = true;
-      } catch (error: any) {
-        responseOK = false;
-        errorResponse = error.error;
-
-        this.sharedService.errorLog(errorResponse);
-      }
+      this.userService.updateUser(userId, this.profileUser).pipe(
+        tap(() => {
+          this.sharedService.managementToast('profileFeedback', true);
+        }),
+        catchError((error) => {
+          this.sharedService.errorLog(error.error);
+          this.sharedService.managementToast('profileFeedback', false, error.error);
+          return of(null);
+        })
+      ).subscribe();
     }
-
-    await this.sharedService.managementToast(
-      'profileFeedback',
-      responseOK,
-      errorResponse
-    );
   }
 }
