@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { Router } from '@angular/router';
 import { HeaderMenus } from 'src/app/Models/header-menus.dto';
 import { PostDTO } from 'src/app/Models/post.dto';
@@ -12,8 +13,9 @@ import { SharedService } from 'src/app/Services/shared.service';
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit, OnDestroy {
   posts!: PostDTO[];
+  private subscriptions: Subscription = new Subscription();
   showButtons: boolean;
 
   constructor(
@@ -36,39 +38,47 @@ export class HomeComponent {
       }
     );
   }
-  private async loadPosts(): Promise<void> {
-    let errorResponse: any;
-    const userId = this.localStorageService.get('user_id');
-    if (userId) {
-      this.showButtons = true;
-    }
-    try {
-      this.posts = await this.postService.getPosts();
-    } catch (error: any) {
-      errorResponse = error.error;
-      this.sharedService.errorLog(errorResponse);
-    }
+
+  private loadPosts(): void {
+    this.subscriptions.add(
+      this.postService.getPosts().subscribe({
+        next: (posts) => {
+          this.posts = posts;
+        },
+        error: (error) => {
+          this.sharedService.errorLog(error.error);
+        }
+      })
+    );
   }
 
-  async like(postId: string): Promise<void> {
-    let errorResponse: any;
-    try {
-      await this.postService.likePost(postId);
-      this.loadPosts();
-    } catch (error: any) {
-      errorResponse = error.error;
-      this.sharedService.errorLog(errorResponse);
-    }
+  like(postId: string): void {
+    this.subscriptions.add(
+      this.postService.likePost(postId).subscribe({
+        next: () => {
+          this.loadPosts(); // Reload posts to update like count
+        },
+        error: (error) => {
+          this.sharedService.errorLog(error.error);
+        }
+      })
+    );
   }
 
-  async dislike(postId: string): Promise<void> {
-    let errorResponse: any;
-    try {
-      await this.postService.dislikePost(postId);
-      this.loadPosts();
-    } catch (error: any) {
-      errorResponse = error.error;
-      this.sharedService.errorLog(errorResponse);
-    }
+  dislike(postId: string): void {
+    this.subscriptions.add(
+      this.postService.dislikePost(postId).subscribe({
+        next: () => {
+          this.loadPosts(); // Reload posts to update dislike count
+        },
+        error: (error) => {
+          this.sharedService.errorLog(error.error);
+        }
+      })
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
   }
 }
