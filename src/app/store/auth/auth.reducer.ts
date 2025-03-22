@@ -10,5 +10,8 @@ export const authReducer = createReducer(
     accessToken,
     isAuthenticated: true,
   })),
-  on(AuthActions.logout, () => initialAuthState)
+  on(AuthActions.logout, () => ({
+    ...initialAuthState,
+    isAuthenticated: false,
+  }))
 );
