@@ -1,10 +1,9 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Store } from '@ngrx/store';
+import { Observable, Subscription } from 'rxjs';
+import { selectIsAuthenticated } from '../../store/auth/auth.selectors';
 import { Router } from '@angular/router';
-import { HeaderMenus } from 'src/app/Models/header-menus.dto';
 import { PostDTO } from 'src/app/Models/post.dto';
-import { HeaderMenusService } from 'src/app/Services/header-menus.service';
-import { LocalStorageService } from 'src/app/Services/local-storage.service';
 import { PostService } from 'src/app/Services/post.service';
 import { SharedService } from 'src/app/Services/shared.service';
 
@@ -16,28 +15,19 @@ import { SharedService } from 'src/app/Services/shared.service';
 export class HomeComponent implements OnInit, OnDestroy {
   posts!: PostDTO[];
   private subscriptions: Subscription = new Subscription();
-  showButtons: boolean;
-
+  isAuthenticated$: Observable<boolean>;
+  
   constructor(
     private postService: PostService,
-    private localStorageService: LocalStorageService,
     private sharedService: SharedService,
     private router: Router,
-    private headerMenusService: HeaderMenusService
+    private store: Store
   ) {
-    this.showButtons = false;
+    this.isAuthenticated$ = this.store.select(selectIsAuthenticated);
     this.loadPosts();
   }
 
-  ngOnInit(): void {
-    this.headerMenusService.headerManagement.subscribe(
-      (headerInfo: HeaderMenus) => {
-        if (headerInfo) {
-          this.showButtons = headerInfo.showAuthSection;
-        }
-      }
-    );
-  }
+  ngOnInit(): void {}
 
   private loadPosts(): void {
     this.subscriptions.add(

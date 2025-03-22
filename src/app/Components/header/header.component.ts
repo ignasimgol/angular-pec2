@@ -1,5 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { Store } from '@ngrx/store';
+import { Observable } from 'rxjs';
+import { selectIsAuthenticated } from '../../store/auth/auth.selectors';
+import * as AuthActions from '../../store/auth/auth.actions';
 import { HeaderMenus } from 'src/app/Models/header-menus.dto';
 import { HeaderMenusService } from 'src/app/Services/header-menus.service';
 import { LocalStorageService } from 'src/app/Services/local-storage.service';
@@ -12,14 +16,17 @@ import { LocalStorageService } from 'src/app/Services/local-storage.service';
 export class HeaderComponent implements OnInit {
   showAuthSection: boolean;
   showNoAuthSection: boolean;
+  isAuthenticated$: Observable<boolean>;
 
   constructor(
     private router: Router,
+    private store: Store,
     private headerMenusService: HeaderMenusService,
     private localStorageService: LocalStorageService
   ) {
     this.showAuthSection = false;
     this.showNoAuthSection = true;
+    this.isAuthenticated$ = this.store.select(selectIsAuthenticated);
   }
 
   ngOnInit(): void {
@@ -62,16 +69,7 @@ export class HeaderComponent implements OnInit {
   }
 
   logout(): void {
-    this.localStorageService.remove('user_id');
-    this.localStorageService.remove('access_token');
-
-    const headerInfo: HeaderMenus = {
-      showAuthSection: false,
-      showNoAuthSection: true,
-    };
-
-    this.headerMenusService.headerManagement.next(headerInfo);
-
+    this.store.dispatch(AuthActions.logout());
     this.router.navigateByUrl('home');
   }
 }

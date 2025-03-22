@@ -1,18 +1,14 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Store } from '@ngrx/store';
 import { Subscription } from 'rxjs';
-import {
-  UntypedFormBuilder,
-  UntypedFormControl,
-  UntypedFormGroup,
-  Validators,
-} from '@angular/forms';
+import { UntypedFormBuilder, UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthDTO } from 'src/app/Models/auth.dto';
 import { HeaderMenus } from 'src/app/Models/header-menus.dto';
 import { AuthService } from 'src/app/Services/auth.service';
 import { HeaderMenusService } from 'src/app/Services/header-menus.service';
-import { LocalStorageService } from 'src/app/Services/local-storage.service';
 import { SharedService } from 'src/app/Services/shared.service';
+import * as AuthActions from '../../store/auth/auth.actions';
 
 @Component({
   selector: 'app-login',
@@ -31,8 +27,8 @@ export class LoginComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private sharedService: SharedService,
     private headerMenusService: HeaderMenusService,
-    private localStorageService: LocalStorageService,
-    private router: Router
+    private router: Router,
+    private store: Store
   ) {
     this.loginUser = new AuthDTO('', '', '', '');
 
@@ -66,12 +62,12 @@ export class LoginComponent implements OnInit, OnDestroy {
       this.authService.login(this.loginUser).subscribe({
         next: (authToken) => {
           responseOK = true;
-          this.loginUser.user_id = authToken.user_id;
-          this.loginUser.access_token = authToken.access_token;
           
-          // save token to localstorage for next requests
-          this.localStorageService.set('user_id', this.loginUser.user_id);
-          this.localStorageService.set('access_token', this.loginUser.access_token);
+          // Dispatch login action to store auth data in Redux
+          this.store.dispatch(AuthActions.login({ 
+            userId: authToken.user_id, 
+            accessToken: authToken.access_token 
+          }));
 
           this.sharedService.managementToast('loginFeedback', responseOK, undefined);
 
@@ -79,7 +75,6 @@ export class LoginComponent implements OnInit, OnDestroy {
             showAuthSection: true,
             showNoAuthSection: false,
           };
-          // update options menu
           this.headerMenusService.headerManagement.next(headerInfo);
           this.router.navigateByUrl('home');
         },

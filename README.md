@@ -1,3 +1,6 @@
+He tingut un problema amb els commits i he hagut de recuperar el segon commit que havia fet per tal de poder continuar amb l'exercici 3 de la PAC sense problemes.
+
+
 # BlogUocProjectFront
 
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 12.2.5.

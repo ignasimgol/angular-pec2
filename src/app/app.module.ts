@@ -2,6 +2,7 @@ import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
+import { StoreModule } from '@ngrx/store';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { CategoriesListComponent } from './Components/categories/categories-list/categories-list.component';
@@ -17,6 +18,7 @@ import { RegisterComponent } from './Components/register/register.component';
 import { AuthInterceptorService } from './Services/auth-interceptor.service';
 import { FormatDatePipe } from './Pipes/format-date.pipe';
 import { DashboardComponent } from './Components/dashboard/dashboard.component';
+import { authReducer } from './store/auth/auth.reducer';
 
 @NgModule({
   declarations: [
@@ -39,6 +41,7 @@ import { DashboardComponent } from './Components/dashboard/dashboard.component';
     AppRoutingModule,
     ReactiveFormsModule,
     HttpClientModule,
+    StoreModule.forRoot({ auth: authReducer })
   ],
   providers: [
     {
@@ -49,4 +52,4 @@ import { DashboardComponent } from './Components/dashboard/dashboard.component';
   ],
   bootstrap: [AppComponent],
 })
-export class AppModule {}
+export class AppModule { }

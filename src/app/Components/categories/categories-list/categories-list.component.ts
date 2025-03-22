@@ -1,6 +1,8 @@
 import { Component, OnDestroy } from '@angular/core';
-import { Router } from '@angular/router';
+import { Store } from '@ngrx/store';
 import { Subscription } from 'rxjs';
+import { selectUserId } from '../../../store/auth/auth.selectors';
+import { Router } from '@angular/router';
 import { CategoryDTO } from 'src/app/Models/category.dto';
 import { CategoryService } from 'src/app/Services/category.service';
 import { LocalStorageService } from 'src/app/Services/local-storage.service';
@@ -18,26 +20,27 @@ export class CategoriesListComponent implements OnDestroy {
   constructor(
     private categoryService: CategoryService,
     private router: Router,
-    private localStorageService: LocalStorageService,
-    private sharedService: SharedService
+    private sharedService: SharedService,
+    private store: Store
   ) {
     this.loadCategories();
   }
 
   private loadCategories(): void {
-    const userId = this.localStorageService.get('user_id');
-    if (userId) {
-      this.subscriptions.add(
-        this.categoryService.getCategoriesByUserId(userId).subscribe({
-          next: (categories) => {
-            this.categories = categories;
-          },
-          error: (error) => {
-            this.sharedService.errorLog(error.error);
-          }
-        })
-      );
-    }
+    this.subscriptions.add(
+      this.store.select(selectUserId).subscribe(userId => {
+        if (userId) {
+          this.categoryService.getCategoriesByUserId(userId).subscribe({
+            next: (categories) => {
+              this.categories = categories;
+            },
+            error: (error) => {
+              this.sharedService.errorLog(error.error);
+            }
+          });
+        }
+      })
+    );
   }
 
   createCategory(): void {

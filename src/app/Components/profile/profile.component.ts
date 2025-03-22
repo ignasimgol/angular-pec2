@@ -1,24 +1,22 @@
 import { formatDate } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
-import {
-  UntypedFormBuilder,
-  UntypedFormControl,
-  UntypedFormGroup,
-  Validators,
-} from '@angular/forms';
-import { UserDTO } from 'src/app/Models/user.dto';
-import { LocalStorageService } from 'src/app/Services/local-storage.service';
-import { SharedService } from 'src/app/Services/shared.service';
-import { UserService } from 'src/app/Services/user.service';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { UntypedFormBuilder, UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
+import { Store } from '@ngrx/store';
+import { Subscription } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { UserDTO } from 'src/app/Models/user.dto';
+import { SharedService } from 'src/app/Services/shared.service';
+import { UserService } from 'src/app/Services/user.service';
+import { selectUserId } from '../../store/auth/auth.selectors';
 
 @Component({
   selector: 'app-profile',
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss'],
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent implements OnInit, OnDestroy {
+  private subscriptions: Subscription = new Subscription();
   profileUser: UserDTO;
 
   name: UntypedFormControl;
@@ -36,7 +34,7 @@ export class ProfileComponent implements OnInit {
     private formBuilder: UntypedFormBuilder,
     private userService: UserService,
     private sharedService: SharedService,
-    private localStorageService: LocalStorageService
+    private store: Store
   ) {
     this.profileUser = new UserDTO('', '', '', '', new Date(), '', '');
 
@@ -92,60 +90,68 @@ export class ProfileComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    const userId = this.localStorageService.get('user_id');
-    if (userId) {
-      this.userService.getUserById(userId).pipe(
-        tap((userData) => {
-          this.name.setValue(userData.name);
-          this.surname_1.setValue(userData.surname_1);
-          this.surname_2.setValue(userData.surname_2);
-          this.alias.setValue(userData.alias);
-          this.birth_date.setValue(
-            formatDate(userData.birth_date, 'yyyy-MM-dd', 'en')
-          );
-          this.email.setValue(userData.email);
+    this.subscriptions.add(
+      this.store.select(selectUserId).subscribe(userId => {
+        if (userId) {
+          this.userService.getUserById(userId).pipe(
+            tap((userData) => {
+              this.name.setValue(userData.name);
+              this.surname_1.setValue(userData.surname_1);
+              this.surname_2.setValue(userData.surname_2);
+              this.alias.setValue(userData.alias);
+              this.birth_date.setValue(
+                formatDate(userData.birth_date, 'yyyy-MM-dd', 'en')
+              );
+              this.email.setValue(userData.email);
 
-          this.profileForm = this.formBuilder.group({
-            name: this.name,
-            surname_1: this.surname_1,
-            surname_2: this.surname_2,
-            alias: this.alias,
-            birth_date: this.birth_date,
-            email: this.email,
-            password: this.password,
-          });
-        }),
-        catchError((error) => {
-          this.sharedService.errorLog(error.error);
-          return of(null);
-        })
-      ).subscribe();
-    }
+              this.profileForm = this.formBuilder.group({
+                name: this.name,
+                surname_1: this.surname_1,
+                surname_2: this.surname_2,
+                alias: this.alias,
+                birth_date: this.birth_date,
+                email: this.email,
+                password: this.password,
+              });
+            }),
+            catchError((error) => {
+              this.sharedService.errorLog(error.error);
+              return of(null);
+            })
+          ).subscribe();
+        }
+      })
+    );
   }
 
   updateUser(): void {
     this.isValidForm = false;
-  
     if (this.profileForm.invalid) {
       return;
     }
-  
+
     this.isValidForm = true;
     this.profileUser = this.profileForm.value;
-  
-    const userId = this.localStorageService.get('user_id');
-  
-    if (userId) {
-      this.userService.updateUser(userId, this.profileUser).pipe(
-        tap(() => {
-          this.sharedService.managementToast('profileFeedback', true);
-        }),
-        catchError((error) => {
-          this.sharedService.errorLog(error.error);
-          this.sharedService.managementToast('profileFeedback', false, error.error);
-          return of(null);
-        })
-      ).subscribe();
-    }
+
+    this.subscriptions.add(
+      this.store.select(selectUserId).subscribe(userId => {
+        if (userId) {
+          this.userService.updateUser(userId, this.profileUser).pipe(
+            tap(() => {
+              this.sharedService.managementToast('profileFeedback', true);
+            }),
+            catchError((error) => {
+              this.sharedService.errorLog(error.error);
+              this.sharedService.managementToast('profileFeedback', false, error.error);
+              return of(null);
+            })
+          ).subscribe();
+        }
+      })
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
   }
 }

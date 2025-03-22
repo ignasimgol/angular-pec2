@@ -23,7 +23,7 @@
     <p>Publication date: {{ post.publication_date | formatDate: 3 }}</p>
     <p>Published by: {{ post.userAlias }}</p>
 
-    <div *ngIf="showButtons">
+    <div *ngIf="isAuthenticated$ | async">
       <button (click)="like(post.postId)">Like</button>
       <button (click)="dislike(post.postId)">Dislike</button>
     </div>

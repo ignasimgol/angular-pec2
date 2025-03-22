@@ -1,4 +1,6 @@
 import { Component, OnDestroy } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { selectUserId } from '../../../store/auth/auth.selectors';
 import { Router } from '@angular/router';
 import { PostDTO } from 'src/app/Models/post.dto';
 import { LocalStorageService } from 'src/app/Services/local-storage.service';
@@ -18,26 +20,27 @@ export class PostsListComponent implements OnDestroy {
   constructor(
     private postService: PostService,
     private router: Router,
-    private localStorageService: LocalStorageService,
-    private sharedService: SharedService
+    private sharedService: SharedService,
+    private store: Store
   ) {
     this.loadPosts();
   }
 
   private loadPosts(): void {
-    const userId = this.localStorageService.get('user_id');
-    if (userId) {
-      this.subscriptions.add(
-        this.postService.getPostsByUserId(userId).subscribe({
-          next: (posts) => {
-            this.posts = posts;
-          },
-          error: (error) => {
-            this.sharedService.errorLog(error.error);
-          }
-        })
-      );
-    }
+    this.subscriptions.add(
+      this.store.select(selectUserId).subscribe(userId => {
+        if (userId) {
+          this.postService.getPostsByUserId(userId).subscribe({
+            next: (posts) => {
+              this.posts = posts;
+            },
+            error: (error) => {
+              this.sharedService.errorLog(error.error);
+            }
+          });
+        }
+      })
+    );
   }
 
   createPost(): void {
