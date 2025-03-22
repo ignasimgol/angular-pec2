@@ -1,12 +1,11 @@
 import { Component, OnDestroy } from '@angular/core';
+import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { Subscription } from 'rxjs';
-import { selectUserId } from '../../../store/auth/auth.selectors';
-import { Router } from '@angular/router';
 import { CategoryDTO } from 'src/app/Models/category.dto';
 import { CategoryService } from 'src/app/Services/category.service';
-import { LocalStorageService } from 'src/app/Services/local-storage.service';
 import { SharedService } from 'src/app/Services/shared.service';
+import { selectUserId } from '../../../store/auth/auth.selectors';
 
 @Component({
   selector: 'app-categories-list',
@@ -14,7 +13,7 @@ import { SharedService } from 'src/app/Services/shared.service';
   styleUrls: ['./categories-list.component.scss'],
 })
 export class CategoriesListComponent implements OnDestroy {
-  categories!: CategoryDTO[];
+  categories: CategoryDTO[] = [];
   private subscriptions: Subscription = new Subscription();
 
   constructor(
@@ -44,31 +43,24 @@ export class CategoriesListComponent implements OnDestroy {
   }
 
   createCategory(): void {
-    this.router.navigateByUrl('/user/category/');
+    this.router.navigateByUrl('category-form');
   }
 
   updateCategory(categoryId: string): void {
-    this.router.navigateByUrl('/user/category/' + categoryId);
+    this.router.navigateByUrl(`category-form/${categoryId}`);
   }
 
   deleteCategory(categoryId: string): void {
-    let result = confirm(
-      'Confirm delete category with id: ' + categoryId + ' .'
+    this.subscriptions.add(
+      this.categoryService.deleteCategory(categoryId).subscribe({
+        next: () => {
+          this.loadCategories();
+        },
+        error: (error) => {
+          this.sharedService.errorLog(error.error);
+        }
+      })
     );
-    if (result) {
-      this.subscriptions.add(
-        this.categoryService.deleteCategory(categoryId).subscribe({
-          next: (response) => {
-            if (response.affected > 0) {
-              this.loadCategories();
-            }
-          },
-          error: (error) => {
-            this.sharedService.errorLog(error.error);
-          }
-        })
-      );
-    }
   }
 
   ngOnDestroy(): void {

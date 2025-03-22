@@ -10,11 +10,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CategoryDTO } from 'src/app/Models/category.dto';
 import { PostDTO } from 'src/app/Models/post.dto';
 import { CategoryService } from 'src/app/Services/category.service';
-import { LocalStorageService } from 'src/app/Services/local-storage.service';
+// Remove this import
+// import { LocalStorageService } from 'src/app/Services/local-storage.service';
 import { PostService } from 'src/app/Services/post.service';
 import { SharedService } from 'src/app/Services/shared.service';
 import { Subscription } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { Store } from '@ngrx/store';
+import { selectUserId } from '../../../store/auth/auth.selectors';
 
 @Component({
   selector: 'app-post-form',
@@ -46,8 +49,8 @@ export class PostFormComponent implements OnInit, OnDestroy {
     private formBuilder: UntypedFormBuilder,
     private router: Router,
     private sharedService: SharedService,
-    private localStorageService: LocalStorageService,
-    private categoryService: CategoryService
+    private categoryService: CategoryService,
+    private store: Store
   ) {
     this.isValidForm = null;
     this.postId = this.activatedRoute.snapshot.paramMap.get('id');
@@ -89,19 +92,20 @@ export class PostFormComponent implements OnInit, OnDestroy {
   }
 
   private loadCategories(): void {
-    const userId = this.localStorageService.get('user_id');
-    if (userId) {
-      this.subscriptions.add(
-        this.categoryService.getCategoriesByUserId(userId).subscribe({
-          next: (categories) => {
-            this.categoriesList = categories;
-          },
-          error: (error) => {
-            this.sharedService.errorLog(error.error);
-          }
-        })
-      );
-    }
+    this.store.select(selectUserId).subscribe(userId => {
+      if (userId) {
+        this.subscriptions.add(
+          this.categoryService.getCategoriesByUserId(userId).subscribe({
+            next: (categories) => {
+              this.categoriesList = categories;
+            },
+            error: (error) => {
+              this.sharedService.errorLog(error.error);
+            }
+          })
+        );
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -115,11 +119,37 @@ export class PostFormComponent implements OnInit, OnDestroy {
 
   private editPost(): void {
     if (this.postId) {
-      const userId = this.localStorageService.get('user_id');
+      this.store.select(selectUserId).subscribe(userId => {
+        if (userId) {
+          this.post.userId = userId;
+          // Cast postId to string since we already checked it's not null
+          this.subscriptions.add(
+            this.postService.updatePost(this.postId as string, this.post).pipe(
+              catchError(error => {
+                this.sharedService.errorLog(error.error);
+                throw error;
+              })
+            ).subscribe({
+              next: () => {
+                this.sharedService.managementToast('postFeedback', true, undefined);
+                this.router.navigateByUrl('posts');
+              },
+              error: (error) => {
+                this.sharedService.managementToast('postFeedback', false, error.error);
+              }
+            })
+          );
+        }
+      });
+    }
+  }
+
+  private createPost(): void {
+    this.store.select(selectUserId).subscribe(userId => {
       if (userId) {
         this.post.userId = userId;
         this.subscriptions.add(
-          this.postService.updatePost(this.postId, this.post).pipe(
+          this.postService.createPost(this.post).pipe(
             catchError(error => {
               this.sharedService.errorLog(error.error);
               throw error;
@@ -135,30 +165,7 @@ export class PostFormComponent implements OnInit, OnDestroy {
           })
         );
       }
-    }
-  }
-
-  private createPost(): void {
-    const userId = this.localStorageService.get('user_id');
-    if (userId) {
-      this.post.userId = userId;
-      this.subscriptions.add(
-        this.postService.createPost(this.post).pipe(
-          catchError(error => {
-            this.sharedService.errorLog(error.error);
-            throw error;
-          })
-        ).subscribe({
-          next: () => {
-            this.sharedService.managementToast('postFeedback', true, undefined);
-            this.router.navigateByUrl('posts');
-          },
-          error: (error) => {
-            this.sharedService.managementToast('postFeedback', false, error.error);
-          }
-        })
-      );
-    }
+    });
   }
 
   savePost(): void {

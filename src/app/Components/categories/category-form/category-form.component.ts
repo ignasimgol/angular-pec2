@@ -1,16 +1,13 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Subscription } from 'rxjs';
-import {
-  UntypedFormBuilder,
-  UntypedFormControl,
-  UntypedFormGroup,
-  Validators,
-} from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { UntypedFormBuilder, UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
+import { Store } from '@ngrx/store';
+import { Subscription } from 'rxjs';
+import { take } from 'rxjs/operators';
 import { CategoryDTO } from 'src/app/Models/category.dto';
 import { CategoryService } from 'src/app/Services/category.service';
-import { LocalStorageService } from 'src/app/Services/local-storage.service';
 import { SharedService } from 'src/app/Services/shared.service';
+import { selectUserId } from '../../../store/auth/auth.selectors';
 
 @Component({
   selector: 'app-category-form',
@@ -37,7 +34,7 @@ export class CategoryFormComponent implements OnInit, OnDestroy {
     private formBuilder: UntypedFormBuilder,
     private router: Router,
     private sharedService: SharedService,
-    private localStorageService: LocalStorageService
+    private store: Store
   ) {
     this.isValidForm = null;
     this.categoryId = this.activatedRoute.snapshot.paramMap.get('id');
@@ -100,42 +97,48 @@ export class CategoryFormComponent implements OnInit, OnDestroy {
 
   private editCategory(): void {
     if (this.categoryId) {
-      const userId = this.localStorageService.get('user_id');
-      if (userId) {
-        this.category.userId = userId;
-        this.subscriptions.add(
-          this.categoryService.updateCategory(this.categoryId, this.category).subscribe({
+      this.subscriptions.add(
+        this.store.select(selectUserId).pipe(
+          take(1)
+        ).subscribe(userId => {
+          if (userId) {
+            this.category.userId = userId;
+            this.categoryService.updateCategory(this.categoryId!, this.category).subscribe({
+              next: () => {
+                this.sharedService.managementToast('categoryFeedback', true, undefined);
+                this.router.navigateByUrl('categories');
+              },
+              error: (error) => {
+                this.sharedService.errorLog(error.error);
+                this.sharedService.managementToast('categoryFeedback', false, error.error);
+              }
+            });
+          }
+        })
+      );
+    }
+  }
+
+  private createCategory(): void {
+    this.subscriptions.add(
+      this.store.select(selectUserId).pipe(
+        take(1)
+      ).subscribe(userId => {
+        if (userId) {
+          this.category.userId = userId;
+          this.categoryService.createCategory(this.category).subscribe({
             next: () => {
-              this.sharedService.managementToast('categoryFeedback', true, undefined);
+              this.sharedService.managementToast('categoryFeedback', true);
               this.router.navigateByUrl('categories');
             },
             error: (error) => {
               this.sharedService.errorLog(error.error);
               this.sharedService.managementToast('categoryFeedback', false, error.error);
             }
-          })
-        );
-      }
-    }
-  }
-
-  private createCategory(): void {
-    const userId = this.localStorageService.get('user_id');
-    if (userId) {
-      this.category.userId = userId;
-      this.subscriptions.add(
-        this.categoryService.createCategory(this.category).subscribe({
-          next: () => {
-            this.sharedService.managementToast('categoryFeedback', true, undefined);
-            this.router.navigateByUrl('categories');
-          },
-          error: (error) => {
-            this.sharedService.errorLog(error.error);
-            this.sharedService.managementToast('categoryFeedback', false, error.error);
-          }
-        })
-      );
-    }
+          });
+        }
+      })
+    );
   }
 
   saveCategory(): void {

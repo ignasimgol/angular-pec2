@@ -48,7 +48,7 @@ import { authReducer } from './store/auth/auth.reducer';
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptorService,
       multi: true,
-    },
+    }
   ],
   bootstrap: [AppComponent],
 })

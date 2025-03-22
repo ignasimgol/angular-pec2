@@ -1,8 +1,7 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { Observable, Subscription } from 'rxjs';
 import { selectIsAuthenticated } from '../../store/auth/auth.selectors';
-import { Router } from '@angular/router';
 import { PostDTO } from 'src/app/Models/post.dto';
 import { PostService } from 'src/app/Services/post.service';
 import { SharedService } from 'src/app/Services/shared.service';
@@ -13,21 +12,21 @@ import { SharedService } from 'src/app/Services/shared.service';
   styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent implements OnInit, OnDestroy {
-  posts!: PostDTO[];
-  private subscriptions: Subscription = new Subscription();
   isAuthenticated$: Observable<boolean>;
-  
+  posts: PostDTO[] = [];
+  private subscriptions: Subscription = new Subscription();
+
   constructor(
+    private store: Store,
     private postService: PostService,
-    private sharedService: SharedService,
-    private router: Router,
-    private store: Store
+    private sharedService: SharedService
   ) {
     this.isAuthenticated$ = this.store.select(selectIsAuthenticated);
-    this.loadPosts();
   }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.loadPosts();
+  }
 
   private loadPosts(): void {
     this.subscriptions.add(
@@ -46,7 +45,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.postService.likePost(postId).subscribe({
         next: () => {
-          this.loadPosts(); // Reload posts to update like count
+          this.loadPosts();
         },
         error: (error) => {
           this.sharedService.errorLog(error.error);
@@ -59,7 +58,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.postService.dislikePost(postId).subscribe({
         next: () => {
-          this.loadPosts(); // Reload posts to update dislike count
+          this.loadPosts();
         },
         error: (error) => {
           this.sharedService.errorLog(error.error);

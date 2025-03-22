@@ -1,19 +1,13 @@
 import { formatDate } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import {
-  UntypedFormBuilder,
-  UntypedFormControl,
-  UntypedFormGroup,
-  Validators,
-} from '@angular/forms';
+import { UntypedFormBuilder, UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { HeaderMenus } from 'src/app/Models/header-menus.dto';
 import { UserDTO } from 'src/app/Models/user.dto';
-import { HeaderMenusService } from 'src/app/Services/header-menus.service';
 import { SharedService } from 'src/app/Services/shared.service';
 import { UserService } from 'src/app/Services/user.service';
 import { catchError, tap } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { Store } from '@ngrx/store';
 
 @Component({
   selector: 'app-register',
@@ -38,8 +32,8 @@ export class RegisterComponent implements OnInit {
     private formBuilder: UntypedFormBuilder,
     private userService: UserService,
     private sharedService: SharedService,
-    private headerMenusService: HeaderMenusService,
-    private router: Router
+    private router: Router,
+    private store: Store
   ) {
     this.registerUser = new UserDTO('', '', '', '', new Date(), '', '');
 
@@ -114,12 +108,6 @@ export class RegisterComponent implements OnInit {
         this.router.navigateByUrl('home');
       }),
       catchError((error) => {
-        const headerInfo: HeaderMenus = {
-          showAuthSection: false,
-          showNoAuthSection: true,
-        };
-        this.headerMenusService.headerManagement.next(headerInfo);
-        
         this.sharedService.errorLog(error.error);
         this.sharedService.managementToast('registerFeedback', false, error.error);
         return of(null);

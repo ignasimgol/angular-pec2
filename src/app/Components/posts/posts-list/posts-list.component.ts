@@ -1,12 +1,11 @@
 import { Component, OnDestroy } from '@angular/core';
-import { Store } from '@ngrx/store';
-import { selectUserId } from '../../../store/auth/auth.selectors';
 import { Router } from '@angular/router';
+import { Store } from '@ngrx/store';
+import { Subscription } from 'rxjs';
 import { PostDTO } from 'src/app/Models/post.dto';
-import { LocalStorageService } from 'src/app/Services/local-storage.service';
 import { PostService } from 'src/app/Services/post.service';
 import { SharedService } from 'src/app/Services/shared.service';
-import { Subscription } from 'rxjs';
+import { selectUserId } from '../../../store/auth/auth.selectors';
 
 @Component({
   selector: 'app-posts-list',
@@ -14,7 +13,7 @@ import { Subscription } from 'rxjs';
   styleUrls: ['./posts-list.component.scss'],
 })
 export class PostsListComponent implements OnDestroy {
-  posts!: PostDTO[];
+  posts: PostDTO[] = [];
   private subscriptions: Subscription = new Subscription();
 
   constructor(
@@ -44,29 +43,24 @@ export class PostsListComponent implements OnDestroy {
   }
 
   createPost(): void {
-    this.router.navigateByUrl('/user/post/');
+    this.router.navigateByUrl('post-form');
   }
 
   updatePost(postId: string): void {
-    this.router.navigateByUrl('/user/post/' + postId);
+    this.router.navigateByUrl(`post-form/${postId}`);
   }
 
   deletePost(postId: string): void {
-    const result = confirm('Confirm delete post with id: ' + postId + ' .');
-    if (result) {
-      this.subscriptions.add(
-        this.postService.deletePost(postId).subscribe({
-          next: (response) => {
-            if (response.affected > 0) {
-              this.loadPosts();
-            }
-          },
-          error: (error) => {
-            this.sharedService.errorLog(error.error);
-          }
-        })
-      );
-    }
+    this.subscriptions.add(
+      this.postService.deletePost(postId).subscribe({
+        next: () => {
+          this.loadPosts();
+        },
+        error: (error) => {
+          this.sharedService.errorLog(error.error);
+        }
+      })
+    );
   }
 
   ngOnDestroy(): void {
