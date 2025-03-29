@@ -4,6 +4,7 @@ import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { selectIsAuthenticated } from '../../store/auth/auth.selectors';
 import * as AuthActions from '../../store/auth/auth.actions';
+import { AuthState } from '../../store/auth/auth.state';
 
 @Component({
   selector: 'app-header',
@@ -15,7 +16,7 @@ export class HeaderComponent {
 
   constructor(
     private router: Router,
-    private store: Store
+    private store: Store<{ auth: AuthState }> // Add proper typing
   ) {
     this.isAuthenticated$ = this.store.select(selectIsAuthenticated);
   }

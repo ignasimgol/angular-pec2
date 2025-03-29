@@ -6,6 +6,8 @@ import { PostDTO } from 'src/app/Models/post.dto';
 import { PostService } from 'src/app/Services/post.service';
 import { SharedService } from 'src/app/Services/shared.service';
 import { selectUserId } from '../../../store/auth/auth.selectors';
+import { AuthState } from '../../../store/auth/auth.state';
+import { take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-posts-list',
@@ -20,14 +22,16 @@ export class PostsListComponent implements OnDestroy {
     private postService: PostService,
     private router: Router,
     private sharedService: SharedService,
-    private store: Store
+    private store: Store<{ auth: AuthState }> // Add proper typing
   ) {
     this.loadPosts();
   }
 
   private loadPosts(): void {
     this.subscriptions.add(
-      this.store.select(selectUserId).subscribe(userId => {
+      this.store.select(selectUserId).pipe(
+        take(1) // Add take(1) to avoid memory leaks
+      ).subscribe(userId => {
         if (userId) {
           this.postService.getPostsByUserId(userId).subscribe({
             next: (posts) => {

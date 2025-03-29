@@ -6,6 +6,8 @@ import { CategoryDTO } from 'src/app/Models/category.dto';
 import { CategoryService } from 'src/app/Services/category.service';
 import { SharedService } from 'src/app/Services/shared.service';
 import { selectUserId } from '../../../store/auth/auth.selectors';
+import { AuthState } from '../../../store/auth/auth.state';
+import { take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-categories-list',
@@ -20,14 +22,16 @@ export class CategoriesListComponent implements OnDestroy {
     private categoryService: CategoryService,
     private router: Router,
     private sharedService: SharedService,
-    private store: Store
+    private store: Store<{ auth: AuthState }> // Add proper typing
   ) {
     this.loadCategories();
   }
 
   private loadCategories(): void {
     this.subscriptions.add(
-      this.store.select(selectUserId).subscribe(userId => {
+      this.store.select(selectUserId).pipe(
+        take(1) // Add take(1) to avoid memory leaks
+      ).subscribe(userId => {
         if (userId) {
           this.categoryService.getCategoriesByUserId(userId).subscribe({
             next: (categories) => {

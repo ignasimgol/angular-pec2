@@ -5,6 +5,7 @@ import { selectIsAuthenticated } from '../../store/auth/auth.selectors';
 import { PostDTO } from 'src/app/Models/post.dto';
 import { PostService } from 'src/app/Services/post.service';
 import { SharedService } from 'src/app/Services/shared.service';
+import { AuthState } from '../../store/auth/auth.state';
 
 @Component({
   selector: 'app-home',
@@ -17,7 +18,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private subscriptions: Subscription = new Subscription();
 
   constructor(
-    private store: Store,
+    private store: Store<{ auth: AuthState }>, // Add proper typing
     private postService: PostService,
     private sharedService: SharedService
   ) {
